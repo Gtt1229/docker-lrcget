@@ -50,6 +50,8 @@ RUN set -x && \
     ./lrcget.AppImage --appimage-extract && \
     mv squashfs-root /opt/lrcget && \
     rm lrcget.AppImage && \
+    chmod -R a+rX /opt/lrcget && \ # Support LRC 2.1.0 AppImage packaging
+    chmod a+rx /opt/lrcget/AppRun /opt/lrcget/AppRun.wrapped && \ # Support LRC 2.1.0 AppImage packaging
     # Create wrapper script
     echo '#!/bin/bash\nexec /opt/lrcget/AppRun "$@"' > /usr/local/bin/lrcget && \
     chmod +x /usr/local/bin/lrcget && \
