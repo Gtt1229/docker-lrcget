@@ -1,0 +1,92 @@
+name: Auto Build LRCGET Container
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+      timezone: "America/New_York"
+
+  workflow_dispatch:
+    inputs:
+      lrcget_version:
+        description: "Optional LRCGET version. Leave blank for latest."
+        required: false
+        default: ""
+
+  push:
+    branches:
+      - main
+    paths:
+      - "Dockerfile"
+      - "docker/**"
+      - ".github/workflows/docker-build.yml"
+
+env:
+  IMAGE_NAME: gtt1229/docker-lrcget
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Get LRCGET version
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.lrcget_version }}" ]; then
+            VERSION="${{ inputs.lrcget_version }}"
+          else
+            VERSION="$(curl -fsSL https://api.github.com/repos/tranxuanthang/lrcget/releases/latest | jq -r '.tag_name')"
+          fi
+
+          VERSION="${VERSION#v}"
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Using LRCGET version: ${VERSION}"
+
+      - name: Verify AppImage exists
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          URL="https://github.com/tranxuanthang/lrcget/releases/download/${VERSION}/LRCGET_${VERSION}_amd64.AppImage"
+
+          echo "Checking: ${URL}"
+          curl -fIsSL "$URL" >/dev/null
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=lrcget-${{ steps.version.outputs.version }}
+            type=sha,prefix=sha-
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            LRCGET_VERSION=${{ steps.version.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
