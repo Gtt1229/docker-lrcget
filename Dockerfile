@@ -1,7 +1,7 @@
 FROM docker.io/jlesage/baseimage-gui:ubuntu-24.04-v4.10.7
 
 # Set LRCGET version
-ARG LRCGET_VERSION=1.0.2
+ARG LRCGET_VERSION=2.1.0
 
 # Set environment variables
 ENV APP_NAME="LRCGET" \
