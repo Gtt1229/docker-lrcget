@@ -2,6 +2,8 @@
 
 Docker container for LRCGET
 
+The LRCGET version is checked nightly and the docker image is built accordingly.
+
 The GUI of the application is accessed through a modern web browser (no installation or configuration needed on client side) or via any VNC client.
 
 ---
